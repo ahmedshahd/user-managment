@@ -15,9 +15,6 @@ export class AuthService {
   constructor(private prisma: PrismaService, private jwtService: JwtService) {}
   async signupLocal(dto: AuthDto): Promise<Tokens> {
     const hash = await argon.hash(dto.password);
-
-    console.log('hash', hash);
-
     try {
       const newAdmin = await this.prisma.admin.create({
         data: {
@@ -118,7 +115,7 @@ export class AuthService {
 
   async updateRtHash(adminId: number, rt: string) {
     const hash = await argon.hash(rt);
-    await this.prisma.admin.update({
+   return  this.prisma.admin.update({
       where: {
         id: adminId,
       },

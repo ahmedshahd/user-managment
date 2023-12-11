@@ -9,29 +9,35 @@ import { PrismaService } from 'src/prisma/prisma.service';
 import { Prisma } from '@prisma/client';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime';
 
+const handleErrorWhen = (errorsMap) => (error) => {
+  errorsMap.forEach((errorMap) => {
+    if (error.code === errorMap.code) {
+      // Prisma error with code P2002 indicates a unique constraint violation
+      throw new ConflictException(errorMap.message);
+    }
+  });
+
+  throw error;
+};
+
 @Injectable()
 export class UserService {
   constructor(private prisma: PrismaService) {}
 
   async create(createUserDto: CreateUserDto) {
-    try {
-      const createdUser = await this.prisma.user.create({
-        data: {
-          ...createUserDto,
-        },
-      });
-      return createdUser;
-    } catch (error) {
-      console.log('error', error);
-      if (error.code === 'P2002') {
-        // Prisma error with code P2002 indicates a unique constraint violation
-        throw new ConflictException(
-          `User with phone number ${createUserDto.phoneNumber} already exists.`,
-        );
-      }
+    return this.prisma.user
+      .create({
+        data: createUserDto,
+      })
+      .catch(
+        handleErrorWhen([
+          {
+            code: 'P2002',
+            message: `User with mobile number ${createUserDto.phoneNumber} already exists.`,
 
-      throw error;
-    }
+          }
+        ]),
+      );
   }
 
   async findAll() {
